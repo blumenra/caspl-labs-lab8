@@ -162,7 +162,7 @@ void togDebug(){
 
 void exemElfFile(){
 
-	char entryPoint[] = {0, 0, 0, 0, 0};
+	char entryPoint[] = {0, 0, 0, 0};
 	setFileName();
 
 	if(currentfd != -1){
@@ -190,6 +190,13 @@ void exemElfFile(){
 		return;
 	}
 
+	if(strncmp(addr+1, "ELF", 3) != 0){
+		fprintf(stderr, "This is not an ELF file!\n");
+		close(currentfd);
+		munmap(addr, mystat.st_size);
+		return;
+	}
+
 	printf("First 3 bytes of the magic number of %s: ", filename);
 	fflush(stdout);
 	write(1, addr+1, 3);
@@ -203,11 +210,11 @@ void exemElfFile(){
 	int i;
 	for(i=2; i >= 0; i--){
 		
-		if((unsigned char) entryPoint[i] <= '9'){
+		// if((unsigned char) entryPoint[i] <= '9'){
 
-			printf("0");
-		}
-		printf("%x", (unsigned char) entryPoint[i]);
+		// 	printf("0");
+		// }
+		printf("%02x", (unsigned char) entryPoint[i]);
 		
 	}
 	printf("\n");
