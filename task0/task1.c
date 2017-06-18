@@ -7,18 +7,18 @@
 
 void flushStdin();
 void printFuncs();
-void printGlobalVariables();
+// void printGlobalVariables();
 int getFuncRequest();
-void initializeBuffer();
+// void initializeBuffer();
 void printByte(char byte);
 
 void togDebug();
-void setFileName();
-void setUnitSize();
-void displayFile();
-void loadToMem();
-void saveToFile();
-void modifyFile();
+// void setFileName();
+// void setUnitSize();
+// void displayFile();
+// void loadToMem();
+// void saveToFile();
+// void modifyFile();
 void quit();
 
 struct func{
@@ -26,32 +26,32 @@ struct func{
   void (*fun)(void);
 };
 
-int size = 0;
-char filename[100];
-unsigned char* data_pointer = NULL;
+// int size = 0;
+// char filename[100];
+// unsigned char* data_pointer = NULL;
 int debug = OFF;
 
 int main(int argc, char** argv){
 
-	initializeBuffer(filename, 100);
+	// initializeBuffer(filename, 100);
 
 	struct func funcs[] = {
 							{"Toggle Debug Mode", togDebug},
-							{"Set File Name", setFileName},
-							{"Set Unit Size", setUnitSize},
-							{"File Display", displayFile},
-							{"Load Into Memory", loadToMem},
-							{"Save Into File", saveToFile},
-							{"File Modify", modifyFile},
+							// {"Set File Name", setFileName},
+							// {"Set Unit Size", setUnitSize},
+							// {"File Display", displayFile},
+							// {"Load Into Memory", loadToMem},
+							// {"Save Into File", saveToFile},
+							// {"File Modify", modifyFile},
 							{"Quit", quit},
 							{NULL, NULL}
 						};
 	
 	while(1){
 
-		if(debug){
-			printGlobalVariables();
-		}
+		// if(debug){
+		// 	printGlobalVariables();
+		// }
 
 		printf("Choose action:\n");
 		printFuncs(funcs);
@@ -71,21 +71,12 @@ int main(int argc, char** argv){
 	return 0;
 }
 
+/*
 void initializeBuffer(char buf[], int length){
 
 	int i;
 	for(i=0; i < length; i++){
 		buf[i] = 0;
-	}
-}
-
-void printFuncs(struct func funcs[]){
-
-	int i=0;
-	while(funcs[i].name != NULL){
-
-		printf("%d-%s\n", i, funcs[i].name);
-		i++;
 	}
 }
 
@@ -97,6 +88,19 @@ void printGlobalVariables(){
 	printf("\tBuffer address: %p\n", data_pointer);
 }
 
+*/
+
+void printFuncs(struct func funcs[]){
+
+	int i=0;
+	while(funcs[i].name != NULL){
+
+		printf("%d-%s\n", i, funcs[i].name);
+		i++;
+	}
+}
+
+
 int getFuncRequest(){
 	char buf[3];
 	fgets(buf, 3, stdin);
@@ -104,11 +108,29 @@ int getFuncRequest(){
 	int funcIndex;
 	sscanf(buf, "%d",&funcIndex);
 
-	if((funcIndex < 0) || (funcIndex >= 8)){
+	if((funcIndex < 0) || (funcIndex >= 2)){
 		funcIndex = -1;
 	}
 
 	return funcIndex;
+}
+
+void flushStdin(){
+
+	int a;
+	while ((a = getchar()) != '\n' && a != EOF);
+}
+
+void printByte(char byte){
+
+	unsigned char rightNibble = byte;
+	unsigned char leftNibble = byte;
+	
+	rightNibble = (rightNibble & 0xf);
+	leftNibble = (leftNibble >> 4);
+
+	printf("%x", leftNibble);
+	printf("%x", rightNibble);
 }
 
 void togDebug(){
@@ -126,6 +148,7 @@ void togDebug(){
 	}
 }
 
+/*
 void setFileName(){
 
 	// flushStdin();
@@ -146,12 +169,6 @@ void setFileName(){
 	if(debug){
 		printf("Debug: file name set to %s\n", filename);
 	}
-}
-
-void flushStdin(){
-
-	int a;
-	while ((a = getchar()) != '\n' && a != EOF);
 }
 
 void setUnitSize(){
@@ -175,16 +192,6 @@ void setUnitSize(){
     else{
         printf("%d is an invalid input! Size was not changed\n", input);
     }
-}
-
-void quit(){
-
-	if(data_pointer != NULL){
-		free(data_pointer);
-	}
-
-	printf("quitting\n");
-	exit(0);
 }
 
 void displayFile(){
@@ -288,18 +295,6 @@ void displayFile(){
 		free(bytesToDisplay);
 
 	}
-}
-
-void printByte(char byte){
-
-	unsigned char rightNibble = byte;
-	unsigned char leftNibble = byte;
-	
-	rightNibble = (rightNibble & 0xf);
-	leftNibble = (leftNibble >> 4);
-
-	printf("%x", leftNibble);
-	printf("%x", rightNibble);
 }
 
 void loadToMem(){
@@ -462,4 +457,15 @@ void modifyFile(){
 
 		fclose(file);
 	}
+}
+
+*/
+void quit(){
+
+	// if(data_pointer != NULL){
+	// 	free(data_pointer);
+	// }
+
+	printf("quitting\n");
+	exit(0);
 }
