@@ -3,6 +3,10 @@
 #include <math.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
 
 #define OFF 0
 #define ON 1
@@ -16,7 +20,7 @@ void printByte(char byte);
 
 void togDebug();
 void exemElfFile();
-// void setFileName();
+void setFileName();
 // void setUnitSize();
 // void displayFile();
 // void loadToMem();
@@ -30,7 +34,7 @@ struct func{
 };
 
 int size = 0;
-int length = 0;
+struct stat mystat;
 char filename[100];
 int currentfd = -1;
 int map_start;
@@ -158,12 +162,58 @@ void togDebug(){
 
 void exemElfFile(){
 
+	char entryPoint[] = {0, 0, 0, 0, 0};
+	setFileName();
+
+	if(currentfd != -1){
+		close(currentfd);
+	}
+
+	currentfd = open(filename, O_RDONLY);
+
+	if(currentfd == -1){
+		perror("open");
+		return;
+	}
+
+	if(fstat(currentfd, &mystat) < 0){
+		perror("fstat");
+		close(currentfd);
+		return;
+	}
+
+	addr = mmap(NULL, mystat.st_size, PROT_READ, MAP_PRIVATE, currentfd, 0);
+
+	if(addr ==  MAP_FAILED){
+		perror("mmap");
+		close(currentfd);
+		return;
+	}
+
+	printf("First 3 bytes of the magic number of %s: ", filename);
+	fflush(stdout);
+	write(1, addr+1, 3);
+	printf("\n");
+
+	printf("Entry point of %s: ", filename);
+	fflush(stdout);
+	strncpy(entryPoint, addr+24, 4);
+	printf("0x");
+	printf("%x", (unsigned char) entryPoint[3]);
+	int i;
+	for(i=2; i >= 0; i--){
+		
+		if((unsigned char) entryPoint[i] <= '9'){
+
+			printf("0");
+		}
+		printf("%x", (unsigned char) entryPoint[i]);
+		
+	}
+	printf("\n");
 }
 
-/*
 void setFileName(){
-
-	// flushStdin();
 
 	printf("Plaese enter a file name\n");
 	fgets(filename, 100, stdin);
@@ -183,6 +233,7 @@ void setFileName(){
 	}
 }
 
+/*
 void setUnitSize(){
 
 	
@@ -480,7 +531,7 @@ void quit(){
 
 	if(currentfd != -1){
 		close(currentfd);
-		munmap(addr, length);
+		munmap(addr, mystat.st_size);
 	}
 
 	printf("quitting\n");
