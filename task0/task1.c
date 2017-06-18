@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #define OFF 0
 #define ON 1
@@ -29,8 +30,10 @@ struct func{
 };
 
 int size = 0;
+int length = 0;
 char filename[100];
-int fd;
+int currentfd = -1;
+int map_start;
 char *addr;
 // unsigned char* data_pointer = NULL;
 int debug = OFF;
@@ -474,6 +477,11 @@ void quit(){
 	// if(data_pointer != NULL){
 	// 	free(data_pointer);
 	// }
+
+	if(currentfd != -1){
+		close(currentfd);
+		munmap(addr, length);
+	}
 
 	printf("quitting\n");
 	exit(0);
