@@ -17,6 +17,7 @@ void printFuncs();
 int getFuncRequest();
 // void initializeBuffer();
 void printByte(char byte);
+void convertNibblesToStr(char nibbles[], char buf[]);
 
 void togDebug();
 void exemElfFile();
@@ -163,6 +164,10 @@ void togDebug(){
 void exemElfFile(){
 
 	char entryPoint[] = {0, 0, 0, 0};
+	char sh_offset[] = {0, 0, 0, 0};
+	char buf[9];
+	buf[8] = 0;
+
 	setFileName();
 
 	if(currentfd != -1){
@@ -197,9 +202,27 @@ void exemElfFile(){
 		return;
 	}
 
-	printf("First 3 bytes of the magic number of %s: ", filename);
+	printf("The first 3 bytes of the magic number of %s: ", filename);
 	fflush(stdout);
 	write(1, addr+1, 3);
+	printf("\n");
+
+
+	printf("The encoding scheme is: ");
+	fflush(stdout);
+	
+	if(addr[5] == 1){
+
+		printf("Little endian\n");
+	}
+	else if(addr[5] == 2){
+		
+		printf("Big endian\n");
+	}
+	else{
+		fprintf(stderr, "Nither little nor big endiannnnn\n");
+
+	}
 	printf("\n");
 
 	printf("Entry point of %s: ", filename);
@@ -210,14 +233,40 @@ void exemElfFile(){
 	int i;
 	for(i=2; i >= 0; i--){
 		
-		// if((unsigned char) entryPoint[i] <= '9'){
-
-		// 	printf("0");
-		// }
 		printf("%02x", (unsigned char) entryPoint[i]);
 		
 	}
 	printf("\n");
+	
+	printf("The file offset of the section header table of %s: ", filename);
+	strncpy(sh_offset, addr+32, 4);
+
+	convertNibblesToStr(sh_offset, buf);
+
+	long n = strtol(buf, NULL, 16);
+	printf("%ld\n", n); 
+}
+
+void convertNibblesToStr(char nibbles[], char buf[]){
+
+	int j = 0;
+	int i;
+	for(i=3; i >= 0; i--){
+		
+		buf[j+1] = ((unsigned char) nibbles[i] & 0xf);
+		if(buf[j+1] > 9)
+			buf[j+1] += 87;
+		else
+			buf[j+1] += 48;
+			
+		buf[j] = ((unsigned char) nibbles[i] >> 4);
+		if(buf[j] > 9)
+			buf[j] += 87;
+		else
+			buf[j] += 48;
+
+		j += 2;
+	}
 }
 
 void setFileName(){
