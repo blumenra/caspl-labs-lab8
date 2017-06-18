@@ -1,9 +1,9 @@
 
-all: hexeditplus
+all: myELF
 
-hexeditplus: task1.o
-	gcc -g -m32 -Wall task1.o -lm -o hexeditplus
-	# gcc -g -Wall task1.o -lm -o hexeditplus
+myELF: task1.o
+	gcc -g -m32 -Wall task1.o -lm -o myELF
+	# gcc -g -Wall task1.o -lm -o myELF
 
 task1.o: task1.c
 	gcc -g -m32 -Wall -c task1.c -o task1.o
@@ -13,4 +13,4 @@ task1.o: task1.c
 	clean
 
 clean:
-	rm -f ./*.o hexeditplus
+	rm -f ./*.o myELF
