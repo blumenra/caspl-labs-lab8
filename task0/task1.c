@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/mman.h>
 
 #define OFF 0
 #define ON 1
@@ -27,8 +28,10 @@ struct func{
   void (*fun)(void);
 };
 
-// int size = 0;
-// char filename[100];
+int size = 0;
+char filename[100];
+int fd;
+char *addr;
 // unsigned char* data_pointer = NULL;
 int debug = OFF;
 
