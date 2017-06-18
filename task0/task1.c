@@ -13,6 +13,7 @@ int getFuncRequest();
 void printByte(char byte);
 
 void togDebug();
+void exemElfFile();
 // void setFileName();
 // void setUnitSize();
 // void displayFile();
@@ -37,6 +38,7 @@ int main(int argc, char** argv){
 
 	struct func funcs[] = {
 							{"Toggle Debug Mode", togDebug},
+							{"Examine ELF File", exemElfFile},
 							// {"Set File Name", setFileName},
 							// {"Set Unit Size", setUnitSize},
 							// {"File Display", displayFile},
@@ -108,7 +110,7 @@ int getFuncRequest(){
 	int funcIndex;
 	sscanf(buf, "%d",&funcIndex);
 
-	if((funcIndex < 0) || (funcIndex >= 2)){
+	if((funcIndex < 0) || (funcIndex >= 3)){
 		funcIndex = -1;
 	}
 
@@ -146,6 +148,10 @@ void togDebug(){
 		debug = ON;
 		printf("Debug flag now on\n");
 	}
+}
+
+void exemElfFile(){
+
 }
 
 /*
