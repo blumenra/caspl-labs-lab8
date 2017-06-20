@@ -21,6 +21,7 @@ void convertNibblesToStr(char nibbles[], char buf[]);
 void printSizes(int amount, int tableOff, int fieldOff, int recordSize);
 int getLongestStrLen(int numOfSh, int shNamesTableOff, int shTableOff);
 void printSpaces(int num);
+int extractField(int fieldOffset, int fieldSize);
 
 void togDebug();
 void exemElfFile();
@@ -46,7 +47,6 @@ int map_start;
 char *addr;
 char fieldBuffer[] = {0, 0, 0, 0};
 char buf[9];
-// unsigned char* data_pointer = NULL;
 int debug = OFF;
 
 int main(int argc, char** argv){
@@ -168,8 +168,6 @@ void togDebug(){
 
 void exemElfFile(){
 
-	char fieldBuffer[] = {0, 0, 0, 0};
-	char buf[9];
 	int numOfSh = 0;
 	int numOfPh = 0;
 	int shTableOff = 0;
@@ -248,23 +246,12 @@ void exemElfFile(){
 	printf("\n");
 	
 	printf("The file offset of the section header table of %s: ", filename);
-	initializeBuffer(fieldBuffer, 4);
-	strncpy(fieldBuffer, addr+32, 4);
-
-	convertNibblesToStr(fieldBuffer, buf);
-
-	shTableOff = strtol(buf, NULL, 16);
+	shTableOff = extractField(32, 4);
 	printf("%d\n", shTableOff);
 
 
 	printf("The number of section header entries of %s: ", filename);
-	initializeBuffer(buf, 9);
-	initializeBuffer(fieldBuffer, 4);
-	strncpy(fieldBuffer, addr+48, 2);
-
-	convertNibblesToStr(fieldBuffer, buf);
-
-	numOfSh = strtol(buf, NULL, 16);
+	numOfSh = extractField(48, 2);
 	printf("%d\n", numOfSh);
 
 
@@ -274,26 +261,17 @@ void exemElfFile(){
 
 	
 	printf("The file offset in which the program header table of %s resides: ", filename);
-	initializeBuffer(buf, 9);
-	initializeBuffer(fieldBuffer, 4);
-	strncpy(fieldBuffer, addr+28, 4);
-	convertNibblesToStr(fieldBuffer, buf);
-	phTableOff = strtol(buf, NULL, 16);
+	phTableOff = extractField(28, 4);
 	printf("%d\n", phTableOff);
 
 
 	printf("The number of program header entries of %s: ", filename);
-	initializeBuffer(buf, 9);
-	initializeBuffer(fieldBuffer, 4);
-	strncpy(fieldBuffer, addr+44, 2);
-	convertNibblesToStr(fieldBuffer, buf);
-	numOfPh = strtol(buf, NULL, 16);
+	numOfPh = extractField(44, 2);
 	printf("%d\n", numOfPh);
 
 
 	printf("%s's program headers sizes: \n", filename);
 	printSizes(numOfPh, phTableOff, 16, 32);
-
 }
 
 int extractField(int fieldOffset, int fieldSize){
@@ -398,22 +376,17 @@ void printSpaces(int num){
 
 void printSizes(int amount, int tableOff, int fieldOff, int recordSize){
 
-	char fieldBuffer[] = {0, 0, 0, 0};
-	char buf[9];
-	buf[8] = 0;
-
 	int l;
 	int currShSize = 0;
 	int currShOff = 0;
 	for(l=0; l < amount; l++){
 		
-		printf("  [%d]: ", l);
-		initializeBuffer(buf, 9);
-		initializeBuffer(fieldBuffer, 4);
-		strncpy(fieldBuffer, addr+tableOff+currShOff+fieldOff, 4);
-		convertNibblesToStr(fieldBuffer, buf);
-		currShSize = strtol(buf, NULL, 16);
+		if(l < 10)
+			printf("  [ %d]: ", l);
+		else
+			printf("  [%d]: ", l);
 
+		currShSize = extractField(tableOff+currShOff+fieldOff, 4);
 		printf("%d\n", currShSize);
 
 		currShOff += recordSize;
