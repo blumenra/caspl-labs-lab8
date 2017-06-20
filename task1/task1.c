@@ -301,6 +301,10 @@ void printSectionNames(){
 	shNamesTableOff = extractField(shTableOff+(shNamesRecordOff*40)+16, 4);
 	numOfSh = extractField(48, 2);
 
+	if(debug){
+		printf("shstrndx: %d\n", shNamesRecordOff);
+	}
+
 	int len = getLongestStrLen(numOfSh, shNamesTableOff, shTableOff);
 
 	int l;
@@ -310,6 +314,9 @@ void printSectionNames(){
 	printf("Section Headers:\n");
 	printf("  [Nr] Name ");
 	printSpaces(len-strlen("Name"));
+	if(debug){
+		printf("shNameOff ");
+	}
 	printf("Addr     Off    Size   Type\n");
 	for(l=0; l < numOfSh; l++){
 		
@@ -321,9 +328,15 @@ void printSectionNames(){
 		shNameOff =  extractField(shTableOff+currShOff, 4);
 
 		currShName = addr+shNamesTableOff+shNameOff;
+	
+
 		printf("%s ", currShName);
 
 		printSpaces(len-strlen(currShName));
+		
+		if(debug){
+			printf("%09x ", shNameOff);
+		}
 
 		initializeBuffer(fieldBuffer, 4);
 		fflush(stdout);
