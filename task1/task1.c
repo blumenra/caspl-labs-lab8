@@ -19,10 +19,13 @@ void initializeBuffer();
 void printByte(char byte);
 void convertNibblesToStr(char nibbles[], char buf[]);
 void printSizes(int amount, int tableOff, int fieldOff, int recordSize);
+int getLongestStrLen(int numOfSh, int shNamesTableOff, int shTableOff);
+void printSpaces(int num);
 
 void togDebug();
 void exemElfFile();
 void setFileName();
+void printSectionNames();
 // void setUnitSize();
 // void displayFile();
 // void loadToMem();
@@ -41,6 +44,8 @@ char filename[100];
 int currentfd = -1;
 int map_start;
 char *addr;
+char fieldBuffer[] = {0, 0, 0, 0};
+char buf[9];
 // unsigned char* data_pointer = NULL;
 int debug = OFF;
 
@@ -51,6 +56,7 @@ int main(int argc, char** argv){
 	struct func funcs[] = {
 							{"Toggle Debug Mode", togDebug},
 							{"Examine ELF File", exemElfFile},
+							{"Print Section Names", printSectionNames},
 							// {"Set File Name", setFileName},
 							// {"Set Unit Size", setUnitSize},
 							// {"File Display", displayFile},
@@ -113,7 +119,6 @@ void printFuncs(struct func funcs[]){
 	}
 }
 
-
 int getFuncRequest(){
 	char buf[3];
 	fgets(buf, 3, stdin);
@@ -121,7 +126,7 @@ int getFuncRequest(){
 	int funcIndex;
 	sscanf(buf, "%d",&funcIndex);
 
-	if((funcIndex < 0) || (funcIndex >= 3)){
+	if((funcIndex < 0) || (funcIndex >= 4)){
 		funcIndex = -1;
 	}
 
@@ -164,12 +169,11 @@ void togDebug(){
 void exemElfFile(){
 
 	char fieldBuffer[] = {0, 0, 0, 0};
+	char buf[9];
 	int numOfSh = 0;
 	int numOfPh = 0;
 	int shTableOff = 0;
 	int phTableOff = 0;
-	char buf[9];
-	buf[8] = 0;
 
 	setFileName();
 
@@ -292,6 +296,106 @@ void exemElfFile(){
 
 }
 
+int extractField(int fieldOffset, int fieldSize){
+	
+	fflush(stdout);
+	initializeBuffer(buf, 9);
+	initializeBuffer(fieldBuffer, 4);
+	strncpy(fieldBuffer, addr+fieldOffset, fieldSize);
+	convertNibblesToStr(fieldBuffer, buf);
+	return strtol(buf, NULL, 16);
+}
+
+void printSectionNames(){
+	
+	if(currentfd == -1){
+
+		fprintf(stderr, "File name is null!\n");
+		return;
+	}
+
+	int shNamesRecordOff = 0;
+	int shNamesTableOff = 0;
+	int shTableOff = extractField(32, 4);
+	int numOfSh = 0;
+
+	shNamesRecordOff = extractField(50, 2);
+	shNamesTableOff = extractField(shTableOff+(shNamesRecordOff*40)+16, 4);
+	numOfSh = extractField(48, 2);
+
+	int len = getLongestStrLen(numOfSh, shNamesTableOff, shTableOff);
+
+	int l;
+	int currShOff = 0;
+	int shNameOff = 0;
+	char* currShName;
+	printf("Section Headers:\n");
+	printf("  [Nr] Name ");
+	printSpaces(len-strlen("Name"));
+	printf("Addr     Off    Size   Type\n");
+	for(l=0; l < numOfSh; l++){
+		
+		if(l < 10)
+			printf("  [ %d] ", l);
+		else
+			printf("  [%d] ", l);
+
+		shNameOff =  extractField(shTableOff+currShOff, 4);
+
+		currShName = addr+shNamesTableOff+shNameOff;
+		printf("%s ", currShName);
+
+		printSpaces(len-strlen(currShName));
+
+		initializeBuffer(fieldBuffer, 4);
+		fflush(stdout);
+		strncpy(fieldBuffer, addr+shTableOff+currShOff+12, 4);
+		int i;
+		for(i=3; i >= 0; i--){
+			
+			printf("%02x", (unsigned char) fieldBuffer[i]);
+			
+		}
+
+		printf(" ");
+		printf("%06x ", extractField(shTableOff+currShOff+16, 4)); //sh_offset
+		printf("%06x ", extractField(shTableOff+currShOff+20, 4)); //sh_size
+		printf("%d ", (unsigned int) extractField(shTableOff+currShOff+4, 4)); //sh_type
+		printf("\n");
+
+		currShOff += 40;
+	}
+}
+
+int getLongestStrLen(int numOfSh, int shNamesTableOff, int shTableOff){
+
+	int longestLen = 0;
+	int l;
+	int currShOff = 0;
+	int shNameOff = 0;
+	char* currShName;
+	for(l=0; l < numOfSh; l++){
+		
+		shNameOff =  extractField(shTableOff+currShOff, 4);
+
+		currShName = addr+shNamesTableOff+shNameOff;
+		if(strlen(currShName) > longestLen)
+			longestLen = strlen(currShName);
+
+		currShOff += 40;
+	}
+
+	return longestLen;
+}
+
+void printSpaces(int num){
+
+	int i;
+	for(i=0; i < num; i++){
+		printf(" ");
+	}
+}
+
 void printSizes(int amount, int tableOff, int fieldOff, int recordSize){
 
 	char fieldBuffer[] = {0, 0, 0, 0};
@@ -357,6 +461,8 @@ void setFileName(){
 		printf("Debug: file name set to %s\n", filename);
 	}
 }
+
+
 
 /*
 void setUnitSize(){
