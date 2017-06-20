@@ -15,9 +15,10 @@ void flushStdin();
 void printFuncs();
 // void printGlobalVariables();
 int getFuncRequest();
-// void initializeBuffer();
+void initializeBuffer();
 void printByte(char byte);
 void convertNibblesToStr(char nibbles[], char buf[]);
+void printSizes(int amount, int tableOff, int fieldOff, int recordSize);
 
 void togDebug();
 void exemElfFile();
@@ -84,7 +85,6 @@ int main(int argc, char** argv){
 	return 0;
 }
 
-/*
 void initializeBuffer(char buf[], int length){
 
 	int i;
@@ -93,6 +93,7 @@ void initializeBuffer(char buf[], int length){
 	}
 }
 
+/*
 void printGlobalVariables(){
 
 	printf("Global variables:\n");
@@ -100,7 +101,6 @@ void printGlobalVariables(){
 	printf("\tFile name: %s\n", filename);
 	printf("\tBuffer address: %p\n", data_pointer);
 }
-
 */
 
 void printFuncs(struct func funcs[]){
@@ -163,8 +163,11 @@ void togDebug(){
 
 void exemElfFile(){
 
-	char entryPoint[] = {0, 0, 0, 0};
-	char sh_offset[] = {0, 0, 0, 0};
+	char fieldBuffer[] = {0, 0, 0, 0};
+	int numOfSh = 0;
+	int numOfPh = 0;
+	int shTableOff = 0;
+	int phTableOff = 0;
 	char buf[9];
 	buf[8] = 0;
 
@@ -183,6 +186,7 @@ void exemElfFile(){
 
 	if(fstat(currentfd, &mystat) < 0){
 		perror("fstat");
+		currentfd = -1;
 		close(currentfd);
 		return;
 	}
@@ -191,12 +195,14 @@ void exemElfFile(){
 
 	if(addr ==  MAP_FAILED){
 		perror("mmap");
+		currentfd = -1;
 		close(currentfd);
 		return;
 	}
 
 	if(strncmp(addr+1, "ELF", 3) != 0){
 		fprintf(stderr, "This is not an ELF file!\n");
+		currentfd = -1;
 		close(currentfd);
 		munmap(addr, mystat.st_size);
 		return;
@@ -223,28 +229,91 @@ void exemElfFile(){
 		fprintf(stderr, "Nither little nor big endiannnnn\n");
 
 	}
-	printf("\n");
 
 	printf("Entry point of %s: ", filename);
 	fflush(stdout);
-	strncpy(entryPoint, addr+24, 4);
+	strncpy(fieldBuffer, addr+24, 4);
 	printf("0x");
-	printf("%x", (unsigned char) entryPoint[3]);
+	printf("%x", (unsigned char) fieldBuffer[3]);
 	int i;
 	for(i=2; i >= 0; i--){
 		
-		printf("%02x", (unsigned char) entryPoint[i]);
+		printf("%02x", (unsigned char) fieldBuffer[i]);
 		
 	}
 	printf("\n");
 	
 	printf("The file offset of the section header table of %s: ", filename);
-	strncpy(sh_offset, addr+32, 4);
+	initializeBuffer(fieldBuffer, 4);
+	strncpy(fieldBuffer, addr+32, 4);
 
-	convertNibblesToStr(sh_offset, buf);
+	convertNibblesToStr(fieldBuffer, buf);
 
-	long n = strtol(buf, NULL, 16);
-	printf("%ld\n", n); 
+	shTableOff = strtol(buf, NULL, 16);
+	printf("%d\n", shTableOff);
+
+
+	printf("The number of section header entries of %s: ", filename);
+	initializeBuffer(buf, 9);
+	initializeBuffer(fieldBuffer, 4);
+	strncpy(fieldBuffer, addr+48, 2);
+
+	convertNibblesToStr(fieldBuffer, buf);
+
+	numOfSh = strtol(buf, NULL, 16);
+	printf("%d\n", numOfSh);
+
+
+
+	printf("%s's section headers sizes: \n", filename);
+	printSizes(numOfSh, shTableOff, 20, 40);
+
+	
+	printf("The file offset in which the program header table of %s resides: ", filename);
+	initializeBuffer(buf, 9);
+	initializeBuffer(fieldBuffer, 4);
+	strncpy(fieldBuffer, addr+28, 4);
+	convertNibblesToStr(fieldBuffer, buf);
+	phTableOff = strtol(buf, NULL, 16);
+	printf("%d\n", phTableOff);
+
+
+	printf("The number of program header entries of %s: ", filename);
+	initializeBuffer(buf, 9);
+	initializeBuffer(fieldBuffer, 4);
+	strncpy(fieldBuffer, addr+44, 2);
+	convertNibblesToStr(fieldBuffer, buf);
+	numOfPh = strtol(buf, NULL, 16);
+	printf("%d\n", numOfPh);
+
+
+	printf("%s's program headers sizes: \n", filename);
+	printSizes(numOfPh, phTableOff, 16, 32);
+
+}
+
+void printSizes(int amount, int tableOff, int fieldOff, int recordSize){
+
+	char fieldBuffer[] = {0, 0, 0, 0};
+	char buf[9];
+	buf[8] = 0;
+
+	int l;
+	int currShSize = 0;
+	int currShOff = 0;
+	for(l=0; l < amount; l++){
+		
+		printf("  [%d]: ", l);
+		initializeBuffer(buf, 9);
+		initializeBuffer(fieldBuffer, 4);
+		strncpy(fieldBuffer, addr+tableOff+currShOff+fieldOff, 4);
+		convertNibblesToStr(fieldBuffer, buf);
+		currShSize = strtol(buf, NULL, 16);
+
+		printf("%d\n", currShSize);
+
+		currShOff += recordSize;
+	}
 }
 
 void convertNibblesToStr(char nibbles[], char buf[]){
