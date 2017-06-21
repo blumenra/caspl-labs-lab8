@@ -22,6 +22,7 @@ void printSizes(int amount, int tableOff, int fieldOff, int recordSize);
 int getLongestStrLen(int numOfSh, int shNamesTableOff, int shTableOff);
 void printSpaces(int num);
 int extractField(int fieldOffset, int fieldSize);
+void printSynTab(int currSymTabIndex, int currStrTabOff);
 
 void togDebug();
 void exemElfFile();
@@ -396,7 +397,7 @@ void printSymbols(){
 	}
 
 
-	int const shSize = 40;
+	// int const shSize = 40;
 	int dynsymIndex = getShIndex(".dynsym");
 	int symtabIndex = getShIndex(".symtab");
 	int strtabIndex = getShIndex(".strtab");
@@ -408,10 +409,10 @@ void printSymbols(){
 	int shTableOff = extractField(32, 4);
 	int dynsymtabOff = extractField(shTableOff+(40*dynsymIndex)+16, 4);
 	int symtabOff = extractField(shTableOff+(40*symtabIndex)+16, 4);
-	int strtabOff = extractField(shTableOff+(40*strtabIndex)+16, 4);
+	// int strtabOff = extractField(shTableOff+(40*strtabIndex)+16, 4);
 
-	int shNamesRecordOff = extractField(50, 2);
-	int shNamesTableOff = extractField(shTableOff+(shNamesRecordOff*40)+16, 4);
+	// int shNamesRecordOff = extractField(50, 2);
+	// int shNamesTableOff = extractField(shTableOff+(shNamesRecordOff*40)+16, 4);
 	if(debug){
 		printf("dynsymtab size: %d\n", extractField(shTableOff+(40*dynsymIndex)+20, 4));
 		printf("dynsymtab entsize: %d\n", extractField(shTableOff+(40*dynsymIndex)+36, 4));
@@ -421,9 +422,9 @@ void printSymbols(){
 
 
 
-	printSynTab(symtabIndex, symtabOff);
-	printf("\n");
 	printSynTab(dynsymIndex, dynsymtabOff);
+	printf("\n");
+	printSynTab(symtabIndex, symtabOff);
 	printf("\n");
 }
 
