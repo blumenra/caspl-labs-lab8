@@ -31,6 +31,7 @@ void setFileName();
 void printSectionNames();
 void printSymbols();
 void checkLink();
+void relTabRaw();
 // void setUnitSize();
 // void displayFile();
 // void loadToMem();
@@ -63,6 +64,7 @@ int main(int argc, char** argv){
 							{"Print Section Names", printSectionNames},
 							{"Print Symbols", printSymbols},
 							{"Link check", checkLink},
+							{"Relocation Tables - Raw", relTabRaw},
 							// {"Set File Name", setFileName},
 							// {"Set Unit Size", setUnitSize},
 							// {"File Display", displayFile},
@@ -476,6 +478,65 @@ void checkLink(){
 		printf("_start check: FAILED\n");
 			
 	printf("\n");
+}
+
+void relTabRaw(){
+
+	if(currentfd == -1){
+
+		fprintf(stderr, "File name is null!\n");
+		return;
+	}
+
+	int relTextIndex = getShIndex(".rel.text");
+	int relFrameIndex = getShIndex(".rel.eh_frame");
+
+	int shTableOff = extractField(32, 4);
+	int relTextTabOff = extractField(shTableOff+(40*relTextIndex)+16, 4);
+	int relFrameTabOff = extractField(shTableOff+(40*relFrameIndex)+16, 4);
+
+	if(relTextIndex >= 0){
+		printRelTab(relTextIndexm, relTextTabOff);
+		
+	}
+	if(relFrameIndex >= 0){
+
+		printRelTab(relFrameIndex, relFrameTabOff);
+	}
+
+}
+
+void printRelTab(int relTabIndex, int relTabOff){
+
+	int numOfrels = getNumOfEntries(relTabIndex);
+	int l;
+	int currRecordOff = 0;
+	printf("  Address Info\n");
+	for(l=0; l < numOfrels; l++){
+
+		initializeBuffer(fieldBuffer, 4);
+		strncpy(fieldBuffer, addr+relTabOff+currRecordOff, 4);
+		int i;
+		for(i=3; i >= 0; i--){
+			
+			printf("%02x", (unsigned char) fieldBuffer[i]);
+			// puts("5");
+			
+		}
+		printf(" %s\n", );
+
+		currRecordOff += 8;
+	}
+	
+}
+
+int getNumOfEntries(int shIndex){
+
+	int shTableOff = extractField(32, 4);
+	int shEntrySize = extractField(shTableOff+(40*shIndex)+36, 4);
+	int numOfEntries = (extractField(shTableOff+(40*shIndex)+20, 4))/shEntrySize;
+
+	return numOfEntries;
 }
 
 int checkLinkInTab(int symTabIndex, int symtabOff){
