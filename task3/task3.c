@@ -23,12 +23,14 @@ int getLongestStrLen(int numOfSh, int shNamesTableOff, int shTableOff);
 void printSpaces(int num);
 int extractField(int fieldOffset, int fieldSize);
 void printSynTab(int currSymTabIndex, int currStrTabOff);
+int checkLinkInTab(int symTabIndex, int symtabOff);
 
 void togDebug();
 void exemElfFile();
 void setFileName();
 void printSectionNames();
 void printSymbols();
+void checkLink();
 // void setUnitSize();
 // void displayFile();
 // void loadToMem();
@@ -60,6 +62,7 @@ int main(int argc, char** argv){
 							{"Examine ELF File", exemElfFile},
 							{"Print Section Names", printSectionNames},
 							{"Print Symbols", printSymbols},
+							{"Link check", checkLink},
 							// {"Set File Name", setFileName},
 							// {"Set Unit Size", setUnitSize},
 							// {"File Display", displayFile},
@@ -129,7 +132,7 @@ int getFuncRequest(){
 	int funcIndex;
 	sscanf(buf, "%d",&funcIndex);
 
-	if((funcIndex < 0) || (funcIndex >= 5)){
+	if((funcIndex < 0) || (funcIndex >= 6)){
 		funcIndex = -1;
 	}
 
@@ -279,7 +282,7 @@ void exemElfFile(){
 
 int extractField(int fieldOffset, int fieldSize){
 	
-	fflush(stdout);
+	// fflush(stdout);
 	initializeBuffer(buf, 9);
 	initializeBuffer(fieldBuffer, 4);
 	strncpy(fieldBuffer, addr+fieldOffset, fieldSize);
@@ -387,7 +390,6 @@ int getShIndex(char const str[]){
 	return -1;
 }
 
-
 void printSymbols(){
 	
 	if(currentfd == -1){
@@ -421,11 +423,86 @@ void printSymbols(){
 	}
 
 
+	if(dynsymIndex >= 0){
 
-	printSynTab(dynsymIndex, dynsymtabOff);
+		printSynTab(dynsymIndex, dynsymtabOff);
+		printf("\n");
+	}
+	if(symtabIndex >= 0){
+		printSynTab(symtabIndex, symtabOff);
+		printf("\n");
+	}
+}
+
+void checkLink(){
+
+	if(currentfd == -1){
+
+		fprintf(stderr, "File name is null!\n");
+		return;
+	}
+
+	int dynsymIndex = getShIndex(".dynsym");
+	int symtabIndex = getShIndex(".symtab");
+	int strtabIndex = getShIndex(".strtab");
+
+	if(debug){
+		printf("dynsymIndex: %d\n", dynsymIndex);
+		printf("symtabIndex: %d\n", symtabIndex);
+		printf("strtabIndex: %d\n", strtabIndex);
+	}
+	int shTableOff = extractField(32, 4);
+	int dynsymtabOff = extractField(shTableOff+(40*dynsymIndex)+16, 4);
+	int symtabOff = extractField(shTableOff+(40*symtabIndex)+16, 4);
+
+	if(debug){
+		printf("dynsymtab size: %d\n", extractField(shTableOff+(40*dynsymIndex)+20, 4));
+		printf("dynsymtab entsize: %d\n", extractField(shTableOff+(40*dynsymIndex)+36, 4));
+		printf("symtab size: %d\n", extractField(shTableOff+(40*symtabIndex)+20, 4));
+		printf("symtab entsize: %d\n", extractField(shTableOff+(40*symtabIndex)+36, 4));
+	}
+
+	int accAns = 0;
+	if(symtabIndex >= 0){
+		accAns += checkLinkInTab(symtabIndex, symtabOff);
+	}
+	if(dynsymIndex >= 0){
+		accAns += checkLinkInTab(dynsymIndex, dynsymtabOff);
+	}
+	
+	if(accAns)
+		printf("_start check: PASSED\n");
+	else
+		printf("_start check: FAILED\n");
+			
 	printf("\n");
-	printSynTab(symtabIndex, symtabOff);
-	printf("\n");
+}
+
+int checkLinkInTab(int symTabIndex, int symtabOff){
+
+	int ans = 0;
+	int shTableOff = extractField(32, 4);
+	int strtabIndex = getShIndex(".strtab");
+	int strtabOff = extractField(shTableOff+(40*strtabIndex)+16, 4);
+	int symEntsize = extractField(shTableOff+(40*symTabIndex)+36, 4);
+	int numOfsyms = (extractField(shTableOff+(40*symTabIndex)+20, 4))/symEntsize;
+
+	int symNameOff = 0;
+	int currRecordOff = 0;
+	char* currsymName;
+	int l;
+	for(l=0; l < numOfsyms; l++){
+
+		symNameOff = extractField(symtabOff+currRecordOff, 4);
+		currsymName = addr+strtabOff+symNameOff;
+		if(strcmp(currsymName, "_start") == 0){
+			ans++;
+		}
+
+		currRecordOff += symEntsize;
+	}
+
+	return ans;
 }
 
 void printSynTab(int currSymTabIndex, int currStrTabOff){
