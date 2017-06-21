@@ -341,7 +341,7 @@ void printSectionNames(){
 		}
 
 		initializeBuffer(fieldBuffer, 4);
-		fflush(stdout);
+		// fflush(stdout);
 		strncpy(fieldBuffer, addr+shTableOff+currShOff+12, 4);
 		int i;
 		for(i=3; i >= 0; i--){
@@ -360,8 +360,152 @@ void printSectionNames(){
 	}
 }
 
-void printSymbols(){
+int getShIndex(char const str[]){
 
+	int shTableOff = extractField(32, 4);
+	int shNamesRecordOff = extractField(50, 2);
+	int shNamesTableOff = extractField(shTableOff+(shNamesRecordOff*40)+16, 4);
+	int numOfSh = extractField(48, 2);
+	
+	int currShOff = 0;
+	int shNameOff = 0;
+	char* currShName;
+	int i;
+	for(i=0; i < numOfSh; i++){
+
+		shNameOff =  extractField(shTableOff+currShOff, 4);
+		currShName = addr+shNamesTableOff+shNameOff;
+
+		if(strcmp(str, currShName) == 0){
+			return i;
+		}
+
+		currShOff += 40;
+	}
+
+	return -1;
+}
+
+
+void printSymbols(){
+	
+	if(currentfd == -1){
+
+		fprintf(stderr, "File name is null!\n");
+		return;
+	}
+
+
+	int const shSize = 40;
+	int dynsymIndex = getShIndex(".dynsym");
+	int symtabIndex = getShIndex(".symtab");
+	int strtabIndex = getShIndex(".strtab");
+	if(debug){
+		printf("dynsymIndex: %d\n", dynsymIndex);
+		printf("symtabIndex: %d\n", symtabIndex);
+		printf("strtabIndex: %d\n", strtabIndex);
+	}
+	int shTableOff = extractField(32, 4);
+	int dynsymtabOff = extractField(shTableOff+(40*dynsymIndex)+16, 4);
+	int symtabOff = extractField(shTableOff+(40*symtabIndex)+16, 4);
+	int strtabOff = extractField(shTableOff+(40*strtabIndex)+16, 4);
+
+	int shNamesRecordOff = extractField(50, 2);
+	int shNamesTableOff = extractField(shTableOff+(shNamesRecordOff*40)+16, 4);
+	if(debug){
+		printf("dynsymtab size: %d\n", extractField(shTableOff+(40*dynsymIndex)+20, 4));
+		printf("dynsymtab entsize: %d\n", extractField(shTableOff+(40*dynsymIndex)+36, 4));
+		printf("symtab size: %d\n", extractField(shTableOff+(40*symtabIndex)+20, 4));
+		printf("symtab entsize: %d\n", extractField(shTableOff+(40*symtabIndex)+36, 4));
+	}
+
+
+
+	printSynTab(symtabIndex, symtabOff);
+	printf("\n");
+	printSynTab(dynsymIndex, dynsymtabOff);
+	printf("\n");
+}
+
+void printSynTab(int currSymTabIndex, int currStrTabOff){
+	
+	int strtabIndex = getShIndex(".strtab");
+	int shNamesRecordOff = extractField(50, 2);
+	int shTableOff = extractField(32, 4);
+	int strtabOff = extractField(shTableOff+(40*strtabIndex)+16, 4);
+	int shNamesTableOff = extractField(shTableOff+(shNamesRecordOff*40)+16, 4);
+	int numOfSh = extractField(48, 2);
+	int symEntsize = extractField(shTableOff+(40*currSymTabIndex)+36, 4);
+	int numOfsyms = (extractField(shTableOff+(40*currSymTabIndex)+20, 4))/symEntsize;
+	int len = getLongestStrLen(numOfSh, shNamesTableOff, shTableOff);
+
+	if(debug){
+		int shNameOff =  extractField(shTableOff+(currSymTabIndex*40), 4);
+		char* currShName = addr+shNamesTableOff+shNameOff;
+		printf("Symbol table '%s' contains %d entries:\n", currShName,numOfsyms);
+	}
+
+	printf("   Num:    Value Ndx shName ");
+	printSpaces(len-strlen("shName"));
+	printf("Name\n");
+
+	int currRecordOff = 0;
+	int shNameOff = 0;
+	int symNameOff = 0;
+	int currShIndex = 0;
+	char* currShName;
+	char* currsymName;
+	int l;
+	for(l=0; l < numOfsyms; l++){
+		
+		if(l < 10)
+			printf("     %d: ", l);
+		else if(l < 100)
+			printf("    %d: ", l);
+		else
+			printf("   %d: ", l);
+
+		initializeBuffer(fieldBuffer, 4);
+		strncpy(fieldBuffer, addr+currStrTabOff+currRecordOff+4, 4);
+		int i;
+		for(i=3; i >= 0; i--){
+			
+			printf("%02x", (unsigned char) fieldBuffer[i]);
+			// puts("5");
+			
+		}
+		printf(" ");
+		
+		currShIndex = extractField(currStrTabOff+currRecordOff+14, 2);
+		if(currShIndex >= extractField(48, 2)){
+			printf("--");
+		}
+		else{
+
+			if(currShIndex < 10)
+				printf("  %d ", currShIndex); //sh_offset
+			else if(currShIndex < 100)
+				printf(" %d ", currShIndex); //sh_offset
+			else
+				printf("%d ", currShIndex); //sh_offset
+
+			shNameOff =  extractField(shTableOff+(currShIndex*40), 4);
+			currShName = addr+shNamesTableOff+shNameOff;
+			printf("%s ", currShName);
+			printSpaces(len-strlen(currShName));
+			
+			// if(debug){
+			// 	printf("%09x ", shNameOff);
+			// }
+
+			symNameOff = extractField(currStrTabOff+currRecordOff, 4);
+			currsymName = addr+strtabOff+symNameOff;
+			printf("%s ", currsymName);
+		}
+		printf("\n");
+
+		currRecordOff += symEntsize;
+	}
 }
 
 int getLongestStrLen(int numOfSh, int shNamesTableOff, int shTableOff){
